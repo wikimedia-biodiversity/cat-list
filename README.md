@@ -17,6 +17,9 @@ Features
 * **Category tree** view: each subcategory with its parent, depth, member counts and QID.
 * Exports: **CSV, TSV, JSON, wikitext table, plain QID list** (paste into QuickStatements / PetScan).
 * **Open in PetScan** link with the same category, depth and namespaces.
+* **Wiki picker:** type to search the full list of open Wikimedia wikis (from Meta's sitematrix, refreshed daily; also at `/wikis.json`).
+* **Namespace drop-down:** Main (default), All, Main + Category, Main + File, File, Category, Template, Project, User, Help, Portal.
+* Downloads save straight to a file named `wiki-category-DDMMYYYY-HHMM.ext` in the user's local time, e.g. `mlwiki-തെയ്യങ്ങൾ-02112026-2002.csv`.
 * JSON API: `/api?wiki=ml&category=തെയ്യങ്ങൾ&depth=1&wd=1&parents=1`
 * No database credentials needed: uses the MediaWiki Action API and the Wikidata API
   (with `maxlag`, retries and a descriptive User-Agent), with a 10-minute cache.
@@ -33,7 +36,8 @@ Features
 | `hidden` | `1` = include hidden categories in parents | off |
 | `wd` | `1` = fetch Wikidata label/description/P31/sitelinks | off |
 | `filter` | `all`, `with`, `without`, `nolabel`, `nodesc` | `all` |
-| `format` | `html`, `csv`, `tsv`, `json`, `wikitext`, `qids` | `html` |
+| `format` | `html`, `csv`, `tsv`, `json`, `wikitext`, `qids` (all except `html` download as a file) | `html` |
+| `tzo` | Time-zone offset in minutes, as from JavaScript `getTimezoneOffset()` (India = `-330`); used for the download file name | `0` (UTC) |
 
 Limits (edit at the top of `app.py`): 3,000 categories, 20,000 pages, Wikidata details for 5,000 items.
 

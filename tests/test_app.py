@@ -15,7 +15,18 @@ MEMBERS = {
    {"pageid": 1, "ns": 0, "title": "ഗുളികൻ", "pageprops": {"wikibase_item": "Q1"}},
    {"pageid": 99, "ns": 14, "title": "വർഗ്ഗം:തെയ്യങ്ങൾ"}]}  # loop back to root
 
+SITEMATRIX = {"sitematrix": {"count": 5,
+  "0": {"code": "ml", "localname": "Malayalam", "site": [
+      {"url": "https://ml.wikipedia.org", "dbname": "mlwiki", "code": "wiki", "sitename": "വിക്കിപീഡിയ"},
+      {"url": "https://ml.wikisource.org", "dbname": "mlwikisource", "code": "wikisource", "sitename": "വിക്കിഗ്രന്ഥശാല"},
+      {"url": "https://ml.wikinews.org", "dbname": "mlwikinews", "code": "wikinews", "sitename": "x", "closed": True}]},
+  "specials": [
+      {"url": "https://commons.wikimedia.org", "dbname": "commonswiki", "code": "commons", "sitename": "Wikimedia Commons"},
+      {"url": "https://wikisource.org", "dbname": "sourceswiki", "code": "sources", "sitename": "Wikisource"},
+      {"url": "https://office.wikimedia.org", "dbname": "officewiki", "code": "office", "sitename": "Office", "private": True}]}}
+
 def fake_api(host, p):
+    if p.get("action") == "sitematrix": return SITEMATRIX
     if p.get("meta") == "siteinfo": return SITE
     if p.get("titles"): return {"query": {"pages": [{"title": "വർഗ്ഗം:തെയ്യങ്ങൾ", "pageprops": {"wikibase_item": "Q100"}}]}}
     if p.get("generator") == "categorymembers":
@@ -46,6 +57,32 @@ def test_normalize():
         try: A.normalize_wiki(bad); assert False, bad
         except A.ToolError: pass
 
+def test_sitematrix():
+    assert A.normalize_wiki("sourceswiki") == "wikisource.org"       # only known via sitematrix
+    assert A.normalize_wiki("wikisource.org") == "wikisource.org"
+    lst = c.get("/wikis.json").get_json()
+    dbs = [w[1] for w in lst]
+    assert "mlwiki" in dbs and "commonswiki" in dbs
+    assert "officewiki" not in dbs and "mlwikinews" not in dbs          # private / closed left out
+    assert ["ml.wikipedia.org", "mlwiki", "Malayalam Wikipedia"] in lst
+
+def test_downloads():
+    import re
+    base = "/?wiki=ml&category=തെയ്യങ്ങൾ&depth=1&wd=1&tzo=-330"
+    for fmt, ext in (("csv", "csv"), ("tsv", "tsv"), ("json", "json"), ("wikitext", "wiki"), ("qids", "txt")):
+        r = c.get(base + "&format=" + fmt)
+        cd = r.headers["Content-Disposition"]
+        assert cd.startswith("attachment;"), cd
+        m = re.search(r"filename\*=UTF-8''(\S+)", cd)
+        from urllib.parse import unquote
+        name = unquote(m.group(1))
+        assert re.fullmatch(r"mlwiki-തെയ്യങ്ങൾ-\d{8}-\d{4}\." + ext, name), name
+    assert "Content-Disposition" not in c.get("/api?wiki=ml&category=തെയ്യങ്ങൾ").headers
+    h = c.get("/?wiki=ml&category=x&ns=*").get_data(as_text=True)
+    assert '<option value="*" selected>All namespaces' in h
+    h = c.get("/").get_data(as_text=True)
+    assert '<option value="0" selected>Main (articles)' in h and 'list="wikilist"' in h
+
 def test_scan_json():
     j = c.get("/api?wiki=ml&category=Category:തെയ്യങ്ങൾ&depth=2&parents=1&wd=1").get_json()
     assert j["stats"] == {"total": 3, "with": 2, "without": 1, "categories": 2, "shown": 3}, j["stats"]
@@ -57,7 +94,7 @@ def test_scan_json():
 
 def test_filters_and_exports():
     base = "/?wiki=mlwiki&category=തെയ്യങ്ങൾ&depth=1&wd=1&parents=1"
-    assert c.get(base + "&filter=nolabel&format=qids").get_data(as_text=True) == "Q2"
+    assert c.get(base + "&filter=nolabel&format=qids").get_data(as_text=True) == "Q2\n"
     assert "കതിവനൂർ" in c.get(base + "&filter=without&format=csv").get_data(as_text=True)
     assert "[[d:Q1|Q1]]" in c.get(base + "&format=wikitext").get_data(as_text=True)
     h = c.get(base).get_data(as_text=True)

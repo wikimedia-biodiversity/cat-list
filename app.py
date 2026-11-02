@@ -15,6 +15,7 @@ import re
 import threading
 import time
 from collections import OrderedDict, deque
+from datetime import datetime, timedelta, timezone
 from urllib.parse import quote, urlencode
 
 import requests
@@ -83,6 +84,12 @@ def normalize_wiki(raw):
     s = re.sub(r"^https?://", "", s).split("/")[0]
     if not s:
         raise ToolError("Please enter a wiki, e.g. ml.wikipedia.org or mlwiki.")
+    sm = sitematrix()
+    if sm:
+        if s in sm["by_db"]:
+            return sm["by_db"][s]
+        if s in sm["hosts"]:
+            return s
     if s in SPECIAL_DB:
         s = SPECIAL_DB[s]
     elif "." not in s:
@@ -94,6 +101,8 @@ def normalize_wiki(raw):
             s = f"{s}.wikipedia.org"          # plain language code
     elif s.count(".") == 1:                   # e.g. "ml.wikipedia"
         s += ".org"
+    if sm and s in sm["hosts"]:
+        return s
     if not WIKI_RE.match(s):
         raise ToolError(f"'{raw}' is not a recognised Wikimedia wiki.")
     return s
@@ -163,6 +172,57 @@ def cached(key, fn):
         while len(_cache) > CACHE_SIZE:
             _cache.popitem(last=False)
     return value
+
+
+# --------------------------------------------------------------------------
+# List of all Wikimedia wikis (from Meta's sitematrix), refreshed daily
+# --------------------------------------------------------------------------
+PROJECT_NAMES = {"wiki": "Wikipedia", "wiktionary": "Wiktionary", "wikibooks": "Wikibooks",
+                 "wikinews": "Wikinews", "wikiquote": "Wikiquote", "wikisource": "Wikisource",
+                 "wikiversity": "Wikiversity", "wikivoyage": "Wikivoyage"}
+_sm = {"time": 0, "data": None}
+_sm_lock = threading.Lock()
+
+
+def _load_sitematrix():
+    d = api("meta.wikimedia.org", {"action": "sitematrix", "smlimit": "max",
+                                   "smlangprop": "code|site|localname",
+                                   "smsiteprop": "url|dbname|code|sitename"})["sitematrix"]
+    wikis = []
+
+    def add(site, label):
+        if site.get("closed") or site.get("private") or site.get("nonglobal"):
+            return
+        host = site["url"].split("://", 1)[-1].rstrip("/")
+        wikis.append({"host": host, "dbname": site["dbname"], "label": label})
+
+    for key, lang in d.items():
+        if key in ("count", "specials") or not isinstance(lang, dict):
+            continue
+        name = lang.get("localname") or lang.get("name") or lang.get("code")
+        for site in lang.get("site", []):
+            add(site, f"{name} {PROJECT_NAMES.get(site.get('code'), site.get('sitename', ''))}")
+    for site in d.get("specials", []):
+        add(site, site.get("sitename") or site["dbname"])
+    wikis.sort(key=lambda w: (w["label"].lower(), w["dbname"]))
+    return {"wikis": wikis, "hosts": {w["host"] for w in wikis},
+            "by_db": {w["dbname"]: w["host"] for w in wikis}}
+
+
+def sitematrix():
+    """Return the wiki list, or None if Meta can't be reached (then a regex is used)."""
+    now = time.time()
+    with _sm_lock:
+        fresh = now - _sm["time"] < (86400 if _sm["data"] else 300)
+        if fresh:
+            return _sm["data"]
+    try:
+        data = _load_sitematrix()
+    except Exception:            # network trouble must never break the tool
+        data = _sm["data"]
+    with _sm_lock:
+        _sm.update(time=now, data=data)
+    return data
 
 
 # --------------------------------------------------------------------------
@@ -345,6 +405,20 @@ FILTERS = {
     "nodesc": "Item has no description in the wiki's language",
 }
 FORMATS = ("html", "json", "csv", "tsv", "wikitext", "qids")
+EXTENSIONS = {"json": "json", "csv": "csv", "tsv": "tsv", "wikitext": "wiki", "qids": "txt"}
+NS_CHOICES = [
+    ("0", "Main (articles)"),
+    ("*", "All namespaces"),
+    ("0,14", "Main + Category"),
+    ("0,6", "Main + File"),
+    ("6", "File"),
+    ("14", "Category"),
+    ("10", "Template"),
+    ("4", "Project"),
+    ("2", "User"),
+    ("12", "Help"),
+    ("100", "Portal (100 on most wikis)"),
+]
 
 
 def parse_namespaces(raw):
@@ -364,6 +438,10 @@ def read_options(args):
         depth = 0
     flt = args.get("filter", "all")
     fmt = args.get("format", "html")
+    try:   # browser's getTimezoneOffset(): minutes behind UTC (India = -330)
+        tzo = max(-840, min(840, int(args.get("tzo", 0) or 0)))
+    except ValueError:
+        tzo = 0
     return {
         "wiki": args.get("wiki", "").strip(),
         "category": args.get("category", "").strip(),
@@ -374,6 +452,7 @@ def read_options(args):
         "wd": args.get("wd") == "1",
         "filter": flt if flt in FILTERS else "all",
         "format": fmt if fmt in FORMATS else "html",
+        "tzo": tzo,
     }
 
 
@@ -466,27 +545,42 @@ def flat(row):
     }
 
 
-def export(result, fmt, opts):
-    base = re.sub(r"[^\w\-]+", "_", result["root"].split(":", 1)[-1])[:60] or "category"
+def export_filename(result, opts, fmt):
+    """e.g. mlwiki-തെയ്യങ്ങൾ-02112026-2002.csv (date and time in the user's time zone)."""
+    cat = result["root"].split(":", 1)[-1]
+    slug = re.sub(r'[\\/:*?"<>|]+', "", re.sub(r"[\s_]+", "-", cat.strip()))[:80].strip("-")
+    local = datetime.now(timezone.utc) - timedelta(minutes=opts.get("tzo", 0))
+    return (f"{result['site']['dbname']}-{slug or 'category'}-"
+            f"{local:%d%m%Y-%H%M}.{EXTENSIONS[fmt]}")
+
+
+def attachment(name):
+    ascii_name = name.encode("ascii", "ignore").decode() or "category-list"
+    ascii_name = re.sub(r"--+", "-", ascii_name)
+    return f"attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{quote(name)}"
+
+
+def export(result, fmt, opts, download=True):
     if fmt == "json":
-        return jsonify({"wiki": result["host"], "category": result["root"],
-                        "depth": opts["depth"], "stats": result["stats"],
-                        "warnings": result["warnings"], "categories": result["categories"],
-                        "pages": [flat(r) for r in result["rows"]]})
-    if fmt in ("csv", "tsv"):
+        body = json.dumps({"wiki": result["host"], "category": result["root"],
+                           "depth": opts["depth"], "stats": result["stats"],
+                           "warnings": result["warnings"], "categories": result["categories"],
+                           "pages": [flat(r) for r in result["rows"]]},
+                          ensure_ascii=False, indent=1)
+        mime = "application/json"
+    elif fmt in ("csv", "tsv"):
         buf = io.StringIO()
         w = csv.DictWriter(buf, fieldnames=COLUMNS,
                            delimiter="," if fmt == "csv" else "\t")
         w.writeheader()
         for r in result["rows"]:
             w.writerow(flat(r))
+        body = "\ufeff" + buf.getvalue()          # BOM so Excel reads Malayalam correctly
         mime = "text/csv" if fmt == "csv" else "text/tab-separated-values"
-        return Response("\ufeff" + buf.getvalue(), mimetype=f"{mime}; charset=utf-8",
-                        headers={"Content-Disposition": f'attachment; filename="{base}.{fmt}"'})
-    if fmt == "qids":
-        body = "\n".join(r["qid"] for r in result["rows"] if r["qid"])
-        return Response(body, mimetype="text/plain; charset=utf-8")
-    if fmt == "wikitext":
+    elif fmt == "qids":
+        body = "\n".join(r["qid"] for r in result["rows"] if r["qid"]) + "\n"
+        mime = "text/plain"
+    else:  # wikitext
         lines = ['{| class="wikitable sortable"',
                  "! # !! Page !! Wikidata !! Label !! Description !! Found in"]
         for i, r in enumerate(result["rows"], 1):
@@ -497,7 +591,12 @@ def export(result, fmt, opts):
             lines += ["|-", f"| {i} || [[{title}]] || {q} || {w.get('label', '')} || "
                             f"{w.get('description', '')} || {found}"]
         lines.append("|}")
-        return Response("\n".join(lines), mimetype="text/plain; charset=utf-8")
+        body = "\n".join(lines) + "\n"
+        mime = "text/plain"
+    headers = {}
+    if download:
+        headers["Content-Disposition"] = attachment(export_filename(result, opts, fmt))
+    return Response(body, mimetype=f"{mime}; charset=utf-8", headers=headers)
 
 
 # --------------------------------------------------------------------------
@@ -506,7 +605,7 @@ def export(result, fmt, opts):
 @app.route("/")
 def index():
     opts = read_options(request.args)
-    ctx = {"opts": opts, "filters": FILTERS, "max_depth": MAX_DEPTH,
+    ctx = {"opts": opts, "filters": FILTERS, "max_depth": MAX_DEPTH, "ns_choices": NS_CHOICES,
            "result": None, "error": None, "query": request.query_string.decode()}
     if opts["wiki"] and opts["category"]:
         try:
@@ -531,7 +630,7 @@ def api_route():
                         "parameters": ["wiki", "category", "depth", "ns", "parents",
                                        "hidden", "wd", "filter"]}), 400
     try:
-        return export(run(opts), "json", opts)
+        return export(run(opts), "json", opts, download=False)
     except ToolError as e:
         return jsonify({"error": str(e)}), 400
 
@@ -539,6 +638,14 @@ def api_route():
 @app.route("/about")
 def about():
     return render_template("about.html")
+
+
+@app.route("/wikis.json")
+def wikis_json():
+    sm = sitematrix()
+    resp = jsonify([[w["host"], w["dbname"], w["label"]] for w in (sm["wikis"] if sm else [])])
+    resp.headers["Cache-Control"] = "public, max-age=86400"
+    return resp
 
 
 @app.route("/healthz")

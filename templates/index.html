@@ -67,7 +67,8 @@ button:hover{filter:brightness(1.1)}
 .stats{display:flex;flex-wrap:wrap;gap:10px}
 .stat{flex:1 1 140px;border:1px solid var(--line);border-radius:8px;padding:8px 12px}
 .stat b{display:block;font-size:1.5em}
-.exports a{margin-right:12px;white-space:nowrap}
+.exports a{margin-right:14px;white-space:nowrap;text-decoration:none;font-weight:600}
+.exports a:hover{text-decoration:underline}
 .tablewrap{overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-size:.92em}
 th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
@@ -96,14 +97,19 @@ details summary{cursor:pointer;font-weight:600}
 
 <form class="card" method="get" action="">
 <div class="grid">
-<div><label for="wiki">Wiki <span class="hint">ml, mlwiki or ml.wikipedia.org</span></label>
-<input type="text" id="wiki" name="wiki" value="{{ opts.wiki or 'ml.wikipedia.org' }}" required></div>
+<div><label for="wiki">Wiki <span class="hint">type to search all wikis</span></label>
+<input type="text" id="wiki" name="wiki" list="wikilist" autocomplete="off" spellcheck="false" value="{{ opts.wiki or 'ml.wikipedia.org' }}" required>
+<datalist id="wikilist"></datalist></div>
 <div style="grid-column:span 2"><label for="category">Category <span class="hint">with or without prefix</span></label>
 <input type="text" id="category" name="category" value="{{ opts.category }}" placeholder="തെയ്യങ്ങൾ" required></div>
 <div><label for="depth">Depth <span class="hint">0 = this category only</span></label>
 <input type="number" id="depth" name="depth" min="0" max="{{ max_depth }}" value="{{ opts.depth }}"></div>
-<div><label for="ns">Namespaces <span class="hint">0 = articles, 6 = files, * = all</span></label>
-<input type="text" id="ns" name="ns" value="{{ opts.ns }}"></div>
+<div><label for="ns">Namespaces</label>
+<select id="ns" name="ns">
+{% set ns_values = ns_choices | map(attribute=0) | list %}
+{% for v, label in ns_choices %}<option value="{{ v }}"{% if opts.ns == v %} selected{% endif %}>{{ label }}</option>{% endfor %}
+{% if opts.ns not in ns_values %}<option value="{{ opts.ns }}" selected>Custom: {{ opts.ns }}</option>{% endif %}
+</select></div>
 <div><label for="filter">Show</label>
 <select id="filter" name="filter">{% for k, v in filters.items() %}<option value="{{ k }}"{% if opts.filter == k %} selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
 </div>
@@ -112,6 +118,7 @@ details summary{cursor:pointer;font-weight:600}
 <label><input type="checkbox" name="hidden" value="1"{% if opts.hidden %} checked{% endif %}> Include hidden categories</label>
 <label><input type="checkbox" name="wd" value="1"{% if opts.wd or not opts.wiki %} checked{% endif %}> Wikidata label, description, instance of</label>
 </div>
+<input type="hidden" name="tzo" id="tzo" value="{{ opts.tzo }}">
 <button type="submit">Scan category</button>
 </form>
 
@@ -137,7 +144,7 @@ details summary{cursor:pointer;font-weight:600}
 <div class="stat"><b>{% if result.stats.total %}{{ (100 * result.stats.with / result.stats.total) | round(1) }}{% else %}0{% endif %}%</b>coverage</div>
 </div>
 <p class="exports">Download:
-{% for f in ['csv','tsv','json','wikitext','qids'] %}<a href="{{ query | export_link(f) }}">{{ f | upper }}</a>{% endfor %}
+{% for f, label in [('csv','CSV'),('tsv','TSV'),('json','JSON'),('wikitext','Wikitext'),('qids','QID list')] %}<a class="dl" href="{{ query | export_link(f) }}" download>⬇ {{ label }}</a>{% endfor %}
 <a href="{{ result.petscan }}" target="_blank" rel="noopener">Open in PetScan ↗</a></p>
 </div>
 
@@ -189,6 +196,18 @@ details summary{cursor:pointer;font-weight:600}
 {% block script %}
 <script>
 (function(){
+  var tz=document.getElementById('tzo'); if(tz) tz.value=new Date().getTimezoneOffset();
+  [].forEach.call(document.querySelectorAll('a.dl'),function(a){a.href=a.href.replace(/([?&])tzo=[^&]*/,'$1').replace(/&+$/,'')+'&tzo='+new Date().getTimezoneOffset();});
+  var wl=document.getElementById('wikilist'), wi=document.getElementById('wiki'), loaded=false;
+  function loadWikis(){ if(loaded||!wl) return; loaded=true;
+    fetch('wikis.json').then(function(r){return r.json();}).then(function(list){
+      var frag=document.createDocumentFragment();
+      list.forEach(function(w){var o=document.createElement('option'); o.value=w[0]; o.label=w[2]+' ('+w[1]+')'; o.textContent=w[2]+' ('+w[1]+')'; frag.appendChild(o);});
+      wl.appendChild(frag);
+    }).catch(function(){});}
+  if(wi){ wi.addEventListener('focus',loadWikis); wi.addEventListener('mouseover',loadWikis);
+          wi.addEventListener('focus',function(){ if(!wi.dataset.typed){ wi.select(); } });
+          wi.addEventListener('input',function(){ wi.dataset.typed='1'; }); }
   var f=document.querySelector('form'); if(f) f.addEventListener('submit',function(){var b=f.querySelector('button'); b.disabled=true; b.textContent='The cat is searching…';});
   var t=document.getElementById('t'); if(!t) return;
   var body=t.tBodies[0], rows=[].slice.call(body.rows), q=document.getElementById('q'), count=document.getElementById('count');
