@@ -5,6 +5,8 @@
 A Toolforge tool that takes a category on **any Wikimedia wiki** and lists its
 pages.
 
+Live tool: https://cat-list.toolforge.org
+
 Features
 
 * Scan a category and its subcategories to a chosen **depth** (0–6), with loop protection.
