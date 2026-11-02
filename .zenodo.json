@@ -1,0 +1,39 @@
+{
+  "title": "cat-list – Category → List: a Toolforge tool listing category pages with their Wikidata items",
+  "upload_type": "software",
+  "version": "1.0.0",
+  "publication_date": "2026-11-02",
+  "description": "<p><b>cat-list</b> is a Wikimedia Toolforge tool that takes a category on any Wikimedia wiki and lists its pages. It can follow subcategories to a chosen depth (0–6) and shows, for every page, its Wikidata item, the categories it was found in, its depth and its parent categories. Optional Wikidata details include the label and description in the wiki's language, instance of (P31) and the number of sitelinks.</p><p>Filters highlight pages without a Wikidata item and items missing a label or description, with a one-click link to create new items. Results export as CSV, TSV, JSON, a wikitext table or a plain QID list, and can be opened in PetScan. The tool uses only the public MediaWiki Action API and Wikidata API.</p><p>It was created for the needs of the Wikimedia Biodiversity Taskforce's ongoing projects, such as building lists of the plants of Kerala, Tamil Nadu and Odisha with valid taxonomy on Wikidata, and is useful for edit-a-thons, photo campaigns and WikiProjects.</p><p>Live tool: <a href=\"https://cat-list.toolforge.org\">https://cat-list.toolforge.org</a></p>",
+  "creators": [
+    {
+      "name": "Karingamadathil, Manoj",
+      "orcid": "0000-0003-3885-6595",
+      "affiliation": "Wikimedia Biodiversity Taskforce"
+    }
+  ],
+  "keywords": [
+    "Wikimedia",
+    "Wikipedia",
+    "Wikidata",
+    "Toolforge",
+    "categories",
+    "knowledge gaps",
+    "biodiversity",
+    "open data",
+    "Malayalam Wikipedia"
+  ],
+  "license": "GPL-3.0-or-later",
+  "language": "eng",
+  "related_identifiers": [
+    {
+      "identifier": "https://cat-list.toolforge.org",
+      "relation": "isSupplementTo",
+      "resource_type": "software"
+    },
+    {
+      "identifier": "https://meta.wikimedia.org/wiki/Wikimedia_Biodiversity_Taskforce",
+      "relation": "isPartOf",
+      "resource_type": "other"
+    }
+  ]
+}

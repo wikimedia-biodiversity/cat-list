@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% set page = 'about' %}
+{% block title %}About – Category → Wikidata{% endblock %}
+{% block style %}
+.about{max-width:860px;margin:auto}
+.about h1{font-size:1.8em;margin:18px 0 6px}
+.about h2{font-size:1.2em;margin:0 0 8px}
+.about p{margin:0 0 10px}
+.person{display:flex;gap:16px;align-items:flex-start}
+.avatar{flex:0 0 64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--cat),var(--cat-dark));display:grid;place-items:center;color:#fff;font-weight:800;font-size:1.3em}
+.orcid{display:inline-flex;align-items:center;gap:6px;font-size:.92em}
+.orcid i{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:#a6ce39;color:#fff;font-style:normal;font-weight:800;font-size:.7em}
+.tech{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin-top:6px}
+.tech div{border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.tech b{display:block}
+.tech span{color:var(--muted);font-size:.9em}
+.small-muted{color:var(--muted);font-size:.92em}
+{% endblock %}
+
+{% block content %}
+<div class="about">
+<h1>About this tool</h1>
+
+<section class="card">
+<h2>What it does</h2>
+<p><b>Category → Wikidata</b> takes a category on any Wikimedia wiki – Wikipedia, Wikisource, Commons and the rest, in any language – and lists every page in it together with its Wikidata item. It can follow subcategories to a chosen depth, shows which category each page was found in, lists each page's parent categories, and checks the linked items for missing labels and descriptions in the wiki's own language. Pages without an item get a one-click link to create one. Results can be downloaded as CSV, TSV, JSON, a wikitext table or a plain list of QIDs, or opened in PetScan for larger queries.</p>
+<p>The tool was created for the needs that came up in our ongoing projects: editors and campaign organisers kept asking which articles in a topic were connected to Wikidata, and which items still needed work. It is meant for edit-a-thons, photo campaigns, WikiProjects and anyone building or cleaning up a knowledge graph around a topic.</p>
+</section>
+
+<section class="card">
+<h2>Created by</h2>
+<div class="person">
+<div class="avatar" aria-hidden="true">MK</div>
+<div>
+<p><b>Manoj Karingamadathil</b> is an Open Knowledge activist and Citizen Scientist from India.</p>
+<p class="orcid"><i>iD</i>ORCID:<a href="https://orcid.org/0000-0003-3885-6595" target="_blank" rel="noopener">orcid.org/0000-0003-3885-6595</a></p>
+</div>
+</div>
+</section>
+
+<section class="card">
+<h2><a href="https://meta.wikimedia.org/wiki/Wikimedia_Biodiversity_Taskforce" target="_blank" rel="noopener">Wikimedia Biodiversity Taskforce</a></h2>
+<p>The Wikimedia Biodiversity Taskforce is a collective of volunteers dedicated to identifying and bridging knowledge gaps in biodiversity-related content across the Wikimedia ecosystem. Its projects include India's plant catalogue on Wikidata, Project Hortus Malabaricus, rare, endangered and threatened plants of Kerala, invasive alien species, sacred groves (kaavu), India biodiversity bibliography from the Biodiversity Heritage Library, Wiki Loves Birds and Wiki Loves Earth India, along with events such as Open Data Day and bioblitzes.</p>
+<p>This tool grew out of that work: building lists of the plants of Kerala, Tamil Nadu and Odisha from Wikipedia categories, with valid taxonomy on Wikidata, needed a quick way to see every page in a category tree and its Wikidata item. Learn more on the Taskforce's <a href="https://meta.wikimedia.org/wiki/Wikimedia_Biodiversity_Taskforce" target="_blank" rel="noopener">Meta-Wiki page</a>.</p>
+</section>
+
+<section class="card">
+<h2>Technologies used</h2>
+<div class="tech">
+<div><b>Python 3.11</b><span>Application language</span></div>
+<div><b>Flask &amp; Jinja2</b><span>Web framework and HTML templates</span></div>
+<div><b>Requests</b><span>HTTP client with retries and a descriptive User-Agent</span></div>
+<div><b>MediaWiki Action API</b><span>Category members, page props, parent categories, site info</span></div>
+<div><b>Wikidata (Wikibase) API</b><span>Labels, descriptions, instance of (P31), sitelinks</span></div>
+<div><b>PetScan</b><span>Hand-off for queries beyond this tool's limits</span></div>
+<div><b>Wikimedia Toolforge</b><span>Hosting on Kubernetes with uWSGI / Gunicorn</span></div>
+<div><b>HTML, CSS &amp; inline SVG</b><span>Self-contained page and cat animation, no external resources</span></div>
+</div>
+</section>
+
+<section class="card">
+<h2>How to cite</h2>
+<p>Karingamadathil, M. (2026). <i>cat-list – Category → List</i> (Version {{ version }}) [Computer software]. Zenodo. <a href="https://doi.org/{{ doi }}" target="_blank" rel="noopener">https://doi.org/{{ doi }}</a></p>
+<p class="small-muted">Version {{ version }} · DOI <a href="https://doi.org/{{ doi }}" target="_blank" rel="noopener">{{ doi }}</a> · Released under the <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GNU General Public License v3.0</a></p>
+</section>
+
+<section class="card">
+<h2>Privacy and source</h2>
+<p>The tool does not store your queries beyond a short in-memory cache and loads no resources from outside Wikimedia. It reads only public data from the wiki you choose and from Wikidata. A JSON <a href="api">API</a> is available for other tools.</p>
+</section>
+</div>
+{% endblock %}

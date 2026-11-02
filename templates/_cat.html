@@ -1,0 +1,69 @@
+{# Original illustration: a cat walks along, jumps into a "Cat-egory" box, then peeks out. Pure SVG + CSS, no external files. #}
+<svg class="catscene" viewBox="0 0 600 170" role="img" aria-labelledby="catTitle">
+<title id="catTitle">A little cat walks over and hides in a box labelled Cat-egory, then peeks out</title>
+<line x1="0" y1="150" x2="600" y2="150" stroke="var(--ground)" stroke-width="2" stroke-dasharray="2 6" stroke-linecap="round"/>
+
+<!-- floating QIDs -->
+<g class="qids" font-family="ui-monospace,monospace" font-size="13" fill="var(--accent)">
+<text class="q1" x="120" y="40">Q42</text>
+<text class="q2" x="250" y="28">Q8502</text>
+<text class="q3" x="360" y="48">Q146</text>
+</g>
+
+<!-- walking cat -->
+<g class="walker">
+<g class="bob">
+<path class="tail" d="M10 108 C-8 100 -8 78 6 70" fill="none" stroke="var(--cat)" stroke-width="7" stroke-linecap="round"/>
+<rect class="leg l1" x="16" y="118" width="8" height="20" rx="4" fill="var(--cat-dark)"/>
+<rect class="leg l3" x="54" y="118" width="8" height="20" rx="4" fill="var(--cat-dark)"/>
+<ellipse cx="40" cy="112" rx="33" ry="18" fill="var(--cat)"/>
+<ellipse cx="44" cy="120" rx="20" ry="8" fill="var(--cat-belly)"/>
+<path d="M30 96 q3 10 0 20 M40 95 q3 10 0 22 M50 96 q3 9 0 19" stroke="var(--cat-dark)" stroke-width="3" fill="none" stroke-linecap="round"/>
+<rect class="leg l2" x="26" y="120" width="8" height="19" rx="4" fill="var(--cat)"/>
+<rect class="leg l4" x="64" y="120" width="8" height="19" rx="4" fill="var(--cat)"/>
+<g class="whead">
+<polygon points="62,88 64,68 76,82" fill="var(--cat)"/>
+<polygon points="66,84 66,74 72,82" fill="#f4b6b6"/>
+<polygon points="80,82 90,68 92,90" fill="var(--cat)"/>
+<circle cx="78" cy="96" r="17" fill="var(--cat)"/>
+<ellipse class="blink" cx="75" cy="94" rx="2.4" ry="3" fill="#222"/>
+<ellipse class="blink" cx="86" cy="94" rx="2.4" ry="3" fill="#222"/>
+<path d="M89 100 l3 0 -1.5 2z" fill="#e57373"/>
+<path d="M90 104 q-2 3 -5 1 M90 104 q2 3 4 0" stroke="#5a3a1a" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+<circle cx="70" cy="101" r="3" fill="#f4a6a6" opacity=".6"/>
+</g>
+</g>
+</g>
+
+<defs><clipPath id="boxclip"><rect x="400" y="0" width="200" height="150"/></clipPath></defs>
+<!-- box: back flap, peeking cat, front -->
+<polygon points="440,96 450,74 530,74 540,96" fill="var(--box-dark)"/>
+<g clip-path="url(#boxclip)"><g class="peek">
+<polygon points="470,78 472,56 484,70" fill="var(--cat)"/>
+<polygon points="474,74 474,63 480,71" fill="#f4b6b6"/>
+<polygon points="496,70 508,56 510,78" fill="var(--cat)"/>
+<polygon points="500,71 506,63 506,74" fill="#f4b6b6"/>
+<circle cx="490" cy="86" r="20" fill="var(--cat)"/>
+<path d="M480 70 q2 6 0 10 M490 68 q2 6 0 10 M500 70 q2 6 0 10" stroke="var(--cat-dark)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+<g class="eyes">
+<ellipse class="blink" cx="482" cy="85" rx="3.4" ry="4.4" fill="#222"/>
+<ellipse class="blink" cx="498" cy="85" rx="3.4" ry="4.4" fill="#222"/>
+<circle cx="483.2" cy="83.4" r="1.2" fill="#fff"/>
+<circle cx="499.2" cy="83.4" r="1.2" fill="#fff"/>
+</g>
+<path d="M488 92 h4 l-2 2.4z" fill="#e57373"/>
+</g></g>
+<path class="tailout" d="M540 112 C562 104 560 80 576 74" fill="none" stroke="var(--cat)" stroke-width="7" stroke-linecap="round"/>
+<g class="box">
+<rect x="430" y="96" width="120" height="54" rx="3" fill="var(--box)"/>
+<polygon points="430,96 412,84 452,84 470,96" fill="var(--box-dark)"/>
+<polygon points="550,96 568,84 528,84 510,96" fill="var(--box-dark)"/>
+<rect x="452" y="110" width="76" height="24" rx="3" fill="#f3e3c6"/>
+<text x="490" y="127" text-anchor="middle" font-size="13" font-weight="700" fill="var(--box-ink)" font-family="system-ui,sans-serif">Cat-egory</text>
+</g>
+<g class="paws">
+<ellipse cx="478" cy="97" rx="7" ry="5" fill="var(--cat)"/>
+<ellipse cx="502" cy="97" rx="7" ry="5" fill="var(--cat)"/>
+</g>
+<text class="heartpop" x="514" y="52" font-size="18" fill="#e57373">♥</text>
+</svg>

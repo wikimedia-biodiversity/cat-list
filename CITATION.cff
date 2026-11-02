@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "cat-list – Category → List"
+abstract: >-
+  A Wikimedia Toolforge tool that takes a category on any Wikimedia wiki and lists
+  its pages, following subcategories to a chosen depth, with each page's Wikidata
+  item, parent categories, and Wikidata labels, descriptions and instance of (P31).
+  Results export as CSV, TSV, JSON, wikitext or a QID list.
+authors:
+  - family-names: Karingamadathil
+    given-names: Manoj
+    orcid: "https://orcid.org/0000-0003-3885-6595"
+    affiliation: "Wikimedia Biodiversity Taskforce"
+version: "1.0.0"
+date-released: "2026-11-02"
+url: "https://cat-list.toolforge.org"
+license: GPL-3.0-or-later
+keywords:
+  - Wikimedia
+  - Wikipedia
+  - Wikidata
+  - Toolforge
+  - categories
+  - knowledge gaps
+  - biodiversity
+  - open data
+doi: "10.5281/zenodo.23886791"

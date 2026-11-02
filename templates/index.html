@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+{% set page = 'tool' %}
+{% block title %}{% if result %}{{ result.root }} – {% endif %}Category → Wikidata{% endblock %}
+
+{% block style %}
+/* hero + cat */
+.hero{overflow:hidden;background:linear-gradient(120deg,var(--hero1),var(--hero2));border:1px solid var(--line);border-radius:14px;padding:22px 20px 6px;margin:8px 0 4px;display:grid;grid-template-columns:minmax(260px,1fr) minmax(300px,1.3fr);gap:10px;align-items:center}
+.hero h1{margin:0 0 6px;font-size:2em;line-height:1.15}
+.hero p{margin:0 0 10px;color:var(--muted);max-width:46ch}
+.hero .pill{display:inline-block;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:.82em;margin:0 6px 6px 0}
+.hero.compact{grid-template-columns:1fr minmax(220px,340px);padding:12px 18px 0}
+.hero.compact h1{font-size:1.3em}.hero.compact p{display:none}
+.catscene{width:100%;height:auto;display:block;overflow:hidden}
+@media (max-width:720px){.hero,.hero.compact{grid-template-columns:1fr}.hero h1{font-size:1.6em}}
+
+.catscene *{transform-box:fill-box}
+.walker{animation:walk 12s linear infinite}
+.bob{animation:bob .5s ease-in-out infinite}
+.leg{transform-origin:50% 0}
+.l1,.l4{animation:swing .5s ease-in-out infinite}
+.l2,.l3{animation:swing .5s ease-in-out infinite reverse}
+.tail{transform-origin:100% 100%;animation:sway 1s ease-in-out infinite alternate}
+.blink{transform-origin:center;animation:blink 3.2s infinite}
+.peek{animation:peek 12s ease-in-out infinite}
+.eyes{animation:look 12s ease-in-out infinite}
+.paws{opacity:0;animation:paws 12s ease-in-out infinite}
+.tailout{opacity:0;transform-origin:0% 100%;animation:tailout 12s ease-in-out infinite,sway 0.9s ease-in-out infinite alternate}
+.box{transform-origin:50% 100%;animation:wiggle 12s ease-in-out infinite}
+.heartpop{opacity:0;animation:heart 12s ease-out infinite}
+.qids text{animation:float 4s ease-in-out infinite alternate}
+.qids .q2{animation-delay:-1.3s}.qids .q3{animation-delay:-2.6s}
+
+@keyframes walk{
+ 0%{transform:translate(-140px,0);opacity:1}
+ 44%{transform:translate(330px,0);opacity:1}
+ 49%{transform:translate(372px,-42px) rotate(8deg);opacity:1}
+ 53%{transform:translate(398px,18px) scale(.85);opacity:0}
+ 100%{transform:translate(398px,18px);opacity:0}}
+@keyframes bob{50%{transform:translateY(-2px)}}
+@keyframes swing{0%,100%{transform:rotate(18deg)}50%{transform:rotate(-18deg)}}
+@keyframes sway{from{transform:rotate(-8deg)}to{transform:rotate(10deg)}}
+@keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes wiggle{0%,52%,62%,100%{transform:rotate(0)}54%{transform:rotate(-3deg)}56%{transform:rotate(3deg)}58%{transform:rotate(-2deg)}60%{transform:rotate(1deg)}}
+@keyframes peek{0%,60%{transform:translateY(70px)}66%{transform:translateY(0)}70%{transform:translateY(6px)}73%,88%{transform:translateY(0)}95%,100%{transform:translateY(70px)}}
+@keyframes look{0%,74%{transform:translateX(0)}77%,80%{transform:translateX(-4px)}83%,86%{transform:translateX(4px)}89%,100%{transform:translateX(0)}}
+@keyframes paws{0%,64%{opacity:0}67%,88%{opacity:1}91%,100%{opacity:0}}
+@keyframes tailout{0%,55%{opacity:0}58%,92%{opacity:1}95%,100%{opacity:0}}
+@keyframes heart{0%,74%{opacity:0;transform:translateY(0)}77%{opacity:1}86%{opacity:0;transform:translateY(-22px)}100%{opacity:0}}
+@keyframes float{from{transform:translateY(0);opacity:.35}to{transform:translateY(-8px);opacity:.8}}
+@media (prefers-reduced-motion:reduce){.walker{opacity:0}.peek{transform:none}.paws,.tailout{opacity:1}}
+
+/* form + results */
+form .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+label{display:block;font-weight:600;font-size:.9em;margin-bottom:4px}
+input[type=text],input[type=number],select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--fg);font:inherit}
+.checks{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:12px}
+.checks label{font-weight:400;display:flex;gap:6px;align-items:center;margin:0}
+button{background:var(--accent);color:#fff;border:0;border-radius:6px;padding:9px 22px;font:inherit;font-weight:700;cursor:pointer;margin-top:14px}
+button:hover{filter:brightness(1.1)}
+.hint{color:var(--muted);font-size:.85em;font-weight:400}
+.error{background:#fee7e6;color:#a01;border-color:#d33}
+.warn{background:var(--warn)}
+.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.features .card{margin:0}
+.features h3{margin:0 0 4px;font-size:1.02em}
+.features p{margin:0;color:var(--muted);font-size:.93em}
+.stats{display:flex;flex-wrap:wrap;gap:10px}
+.stat{flex:1 1 140px;border:1px solid var(--line);border-radius:8px;padding:8px 12px}
+.stat b{display:block;font-size:1.5em}
+.exports a{margin-right:12px;white-space:nowrap}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.92em}
+th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+th{position:sticky;top:0;background:var(--card);cursor:pointer;user-select:none;white-space:nowrap}
+#t th:after{content:" ↕";color:var(--muted);font-size:.8em}
+tr:hover td{background:rgba(51,102,204,.06)}
+.q{font-family:ui-monospace,monospace;white-space:nowrap}
+.none{color:var(--bad)}
+.ok{color:var(--ok)}
+.small{font-size:.85em;color:var(--muted)}
+.tag{display:inline-block;border:1px solid var(--line);border-radius:10px;padding:0 6px;margin:1px 2px 1px 0;font-size:.82em}
+details summary{cursor:pointer;font-weight:600}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px}
+.toolbar input{max-width:320px}
+{% endblock %}
+
+{% block content %}
+<section class="hero{% if result or error %} compact{% endif %}">
+<div>
+<h1>Find the Wikidata behind every page in a category</h1>
+<p>Pick a wiki and a category. The little cat dives through the subcategories and brings back each page with its Wikidata item, parent categories and missing labels.</p>
+<span class="pill">Any Wikimedia wiki</span><span class="pill">Subcategory depth</span><span class="pill">CSV · JSON · Wikitext</span>
+</div>
+{% include "_cat.html" %}
+</section>
+
+<form class="card" method="get" action="">
+<div class="grid">
+<div><label for="wiki">Wiki <span class="hint">ml, mlwiki or ml.wikipedia.org</span></label>
+<input type="text" id="wiki" name="wiki" value="{{ opts.wiki or 'ml.wikipedia.org' }}" required></div>
+<div style="grid-column:span 2"><label for="category">Category <span class="hint">with or without prefix</span></label>
+<input type="text" id="category" name="category" value="{{ opts.category }}" placeholder="തെയ്യങ്ങൾ" required></div>
+<div><label for="depth">Depth <span class="hint">0 = this category only</span></label>
+<input type="number" id="depth" name="depth" min="0" max="{{ max_depth }}" value="{{ opts.depth }}"></div>
+<div><label for="ns">Namespaces <span class="hint">0 = articles, 6 = files, * = all</span></label>
+<input type="text" id="ns" name="ns" value="{{ opts.ns }}"></div>
+<div><label for="filter">Show</label>
+<select id="filter" name="filter">{% for k, v in filters.items() %}<option value="{{ k }}"{% if opts.filter == k %} selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+</div>
+<div class="checks">
+<label><input type="checkbox" name="parents" value="1"{% if opts.parents or not opts.wiki %} checked{% endif %}> Parent categories of each page</label>
+<label><input type="checkbox" name="hidden" value="1"{% if opts.hidden %} checked{% endif %}> Include hidden categories</label>
+<label><input type="checkbox" name="wd" value="1"{% if opts.wd or not opts.wiki %} checked{% endif %}> Wikidata label, description, instance of</label>
+</div>
+<button type="submit">Scan category</button>
+</form>
+
+{% if error %}<div class="card error">{{ error }}</div>{% endif %}
+
+{% if not result and not error %}
+<section class="features">
+<div class="card"><h3>🌳 Scan the tree</h3><p>Go up to {{ max_depth }} levels into subcategories. Every page shows where it was found and at what depth.</p></div>
+<div class="card"><h3>🔗 Wikidata coverage</h3><p>See which pages have an item, which don't, and which items lack a label or description in your language.</p></div>
+<div class="card"><h3>🏷️ Parent categories</h3><p>List every category a page belongs to, with hidden maintenance categories on request.</p></div>
+<div class="card"><h3>📦 Export &amp; PetScan</h3><p>Download CSV, TSV, JSON, a wikitext table or a QID list, or open the same query in PetScan.</p></div>
+</section>
+{% endif %}
+
+{% if result %}
+{% for w in result.warnings %}<div class="card warn">{{ w }}</div>{% endfor %}
+<div class="card">
+<div class="stats">
+<div class="stat"><b>{{ result.stats.total }}</b>pages found</div>
+<div class="stat"><b class="ok">{{ result.stats.with }}</b>with Wikidata item</div>
+<div class="stat"><b class="none">{{ result.stats.without }}</b>without item</div>
+<div class="stat"><b>{{ result.stats.categories }}</b>categories scanned</div>
+<div class="stat"><b>{% if result.stats.total %}{{ (100 * result.stats.with / result.stats.total) | round(1) }}{% else %}0{% endif %}%</b>coverage</div>
+</div>
+<p class="exports">Download:
+{% for f in ['csv','tsv','json','wikitext','qids'] %}<a href="{{ query | export_link(f) }}">{{ f | upper }}</a>{% endfor %}
+<a href="{{ result.petscan }}" target="_blank" rel="noopener">Open in PetScan ↗</a></p>
+</div>
+
+<details class="card">
+<summary>Category tree ({{ result.categories | length }})</summary>
+<div class="tablewrap"><table>
+<thead><tr><th>Category</th><th>Depth</th><th>Parent (in scan)</th><th>Pages</th><th>Subcats</th><th>Wikidata</th></tr></thead>
+<tbody>
+{% for c in result.categories %}
+<tr><td style="padding-left:{{ 8 + c.depth * 18 }}px"><a href="https://{{ result.host }}/wiki/{{ c.title | replace(' ', '_') | urlencode }}" target="_blank">{{ c.title.split(':', 1)[1] }}</a></td>
+<td>{{ c.depth }}</td><td class="small">{{ c.parent.split(':', 1)[1] if c.parent else '—' }}</td>
+<td>{{ c.pages }}</td><td>{{ c.subcats }}</td>
+<td class="q">{% if c.qid %}<a href="https://www.wikidata.org/wiki/{{ c.qid }}" target="_blank">{{ c.qid }}</a>{% else %}<span class="none">—</span>{% endif %}</td></tr>
+{% endfor %}
+</tbody></table></div>
+</details>
+
+<div class="card">
+<div class="toolbar"><input type="text" id="q" placeholder="Filter rows…" aria-label="Filter rows"><span class="small" id="count">{{ result.stats.shown }} rows</span></div>
+<div class="tablewrap"><table id="t">
+<thead><tr>
+<th>#</th><th>Page</th><th>Wikidata</th>
+{% if result.wd_loaded %}<th>Label ({{ result.site.lang }})</th><th>Description ({{ result.site.lang }})</th><th>Instance of</th><th>Sitelinks</th>{% endif %}
+<th>Found in</th><th>Depth</th>
+{% if opts.parents %}<th>Parent categories</th>{% endif %}
+</tr></thead>
+<tbody>
+{% for r in result.rows %}
+<tr>
+<td>{{ loop.index }}</td>
+<td><a href="{{ r.url }}" target="_blank">{{ r.title }}</a>{% if r.disambig %} <span class="tag">disambig</span>{% endif %}</td>
+<td class="q">{% if r.qid %}<a href="https://www.wikidata.org/wiki/{{ r.qid }}" target="_blank">{{ r.qid }}</a>{% else %}<a class="none" href="{{ r.new_item_url }}" target="_blank" title="Create a new Wikidata item">+ create</a>{% endif %}</td>
+{% if result.wd_loaded %}
+<td>{% if r.qid %}{{ r.wd.label or '' }}{% if not r.wd.label %}<span class="none small">missing{% if r.wd.label_en %} · en: {{ r.wd.label_en }}{% endif %}</span>{% endif %}{% endif %}</td>
+<td>{% if r.qid %}{{ r.wd.description or '' }}{% if not r.wd.description %}<span class="none small">missing{% if r.wd.description_en %} · en: {{ r.wd.description_en }}{% endif %}</span>{% endif %}{% endif %}</td>
+<td>{% for p in r.wd.p31 or [] %}<a class="tag" href="https://www.wikidata.org/wiki/{{ p.id }}" target="_blank">{{ p.label }}</a>{% endfor %}</td>
+<td>{{ r.wd.sitelinks if r.qid else '' }}</td>
+{% endif %}
+<td class="small">{% for c in r.found_in %}{{ c.split(':', 1)[1] }}{% if not loop.last %}<br>{% endif %}{% endfor %}</td>
+<td>{{ r.depth }}</td>
+{% if opts.parents %}<td>{% for c in r.parent_cats %}<span class="tag">{{ c.split(':', 1)[1] }}</span>{% endfor %}</td>{% endif %}
+</tr>
+{% endfor %}
+</tbody></table></div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block script %}
+<script>
+(function(){
+  var f=document.querySelector('form'); if(f) f.addEventListener('submit',function(){var b=f.querySelector('button'); b.disabled=true; b.textContent='The cat is searching…';});
+  var t=document.getElementById('t'); if(!t) return;
+  var body=t.tBodies[0], rows=[].slice.call(body.rows), q=document.getElementById('q'), count=document.getElementById('count');
+  q.addEventListener('input',function(){
+    var s=q.value.toLowerCase(), n=0;
+    rows.forEach(function(r){var show=r.textContent.toLowerCase().indexOf(s)>-1; r.style.display=show?'':'none'; if(show)n++;});
+    count.textContent=n+' rows';
+  });
+  [].forEach.call(t.tHead.rows[0].cells,function(th,i){
+    var asc=true;
+    th.addEventListener('click',function(){
+      rows.sort(function(a,b){
+        var x=a.cells[i].textContent.trim(), y=b.cells[i].textContent.trim();
+        var nx=parseFloat(x.replace(/^Q/,'')), ny=parseFloat(y.replace(/^Q/,''));
+        var c=(!isNaN(nx)&&!isNaN(ny))?nx-ny:x.localeCompare(y);
+        return asc?c:-c;
+      });
+      asc=!asc; rows.forEach(function(r){body.appendChild(r);});
+    });
+  });
+})();
+</script>
+{% endblock %}
